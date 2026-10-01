@@ -54,8 +54,14 @@ if [ -z "$PY" ]; then
 fi
 
 RESULTS_DIR="$REPO_ROOT/results/$CID"
-if [ -z "$DRY_RUN" ] && { [ ! -f .env ] || ! grep -q '^FIREWORKS_API_KEY=.\+' .env; }; then
-  echo "WARNING: .env has no FIREWORKS_API_KEY; the rollouts will fail at provider construction." >&2
+PROVIDER="$(sed -n 's/^  provider: //p' "$CFG" | head -1)"
+case "$PROVIDER" in
+  openrouter) KEY_VAR=OPENROUTER_API_KEY ;;
+  fireworks|fireworks_completions) KEY_VAR=FIREWORKS_API_KEY ;;
+  *) KEY_VAR="" ;;
+esac
+if [ -z "$DRY_RUN" ] && [ -n "$KEY_VAR" ] && { [ ! -f .env ] || ! grep -q "^$KEY_VAR=.\+" .env; }; then
+  echo "WARNING: .env has no $KEY_VAR (agent.provider: $PROVIDER); the rollouts will fail at provider construction." >&2
 fi
 
 echo "arm=$CID config=$CFG count=$COUNT max_concurrent=$MAX_CONCURRENT results=$RESULTS_DIR ${DRY_RUN:+(dry run)}"
