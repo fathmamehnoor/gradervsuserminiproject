@@ -1,6 +1,6 @@
 # Probe run findings (2026-10-01)
 
-Branch `neutral-wrappers-openrouter-usage`. This note covers what changed on the branch, the 3-run cost/pipeline
+Branch `deepseek-openrouter-probe`. This note covers what changed on the branch, the 3-run cost/pipeline
 probe (one run each of N0, G0, U0), and what we suggest doing next. Raw results stay local (`results/` is gitignored);
 the numbers below come from `final/score.json`, `rollout.log` and `analysis/cost.py`.
 
