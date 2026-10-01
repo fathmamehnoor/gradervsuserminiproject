@@ -23,9 +23,16 @@ SYSTEM_PROMPT = (
 )
 AGENT = {
     "provider": "fireworks",
+    # Upstream's id. As of 2026-10-01 Fireworks no longer serves it (or deepseek-v4-pro-0813) on
+    # serverless: both 404 "not deployed" (BUILD_REPORT.md §1). Routes: on-demand deployment,
+    # OpenRouter (provider: openrouter, model: deepseek/deepseek-v4-pro-0813), or a different model.
+    # Whatever is chosen must change here, once, for all five arms.
     "model": "accounts/fireworks/models/deepseek-v4-pro",
     "max_steps": 100,          # UNCONFIRMED against the paper; see BUILD_REPORT.md
-    "reasoning_effort": "low",  # UNCONFIRMED: the Fireworks provider's implicit default, set explicitly
+    # Fireworks API reference, reasoning_effort, "DeepSeek V4": "Three thinking tiers: Low, High, and
+    # Max. Default reasoning on at the vendor default tier ('low')." Set explicitly so it is recorded.
+    # Whether the PAPER used low is unconfirmed.
+    "reasoning_effort": "low",
     "llm_heal": False,
 }
 TASK = {

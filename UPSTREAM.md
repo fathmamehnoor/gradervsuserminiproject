@@ -31,3 +31,19 @@ Commit: `310c03fbafdbb16df9ee043a7d9dd18a6d8cd3ec` (cloned 2026-10-01).
 Kept on purpose although not imported at module level: `rejection_provider.py` + `cot_judge.py`
 (lazily imported by `create_provider` when `agent.rejection` is set) and
 `fireworks_completions_provider.py`, for later resampling experiments.
+
+## Divergence from upstream in the agent loop (read before comparing numbers to the paper)
+
+`environments/precommit_hook/agent.py` is not upstream's. The agent's prompts, tools, shell, workspace and
+image contents are unchanged, but the loop around them differs:
+
+- the provider is built with `checkpoint.provider_kwargs(config)` instead of a hand-enumerated kwarg list
+  (upstream dropped `temperature`/`top_p`/`mock_script` on the fresh path);
+- a context-window overflow writes `final/censored.json` and ends the episode instead of crashing it;
+- when the loop ends for any reason (agent stopped, max_steps, censor, exception) `score.finalize` runs in a
+  `finally` and writes `final/{score.json, run_condition.json, telemetry.json, messages.json}`. Upstream
+  never created `final/` for this environment and never called `score.py`; its experiments were run and scored
+  from a private companion repo (upstream CLAUDE.md), so the paper's scoring definitions are not reproduced
+  here, only approximated (see README "Outcomes").
+
+`score.py` keeps upstream's function verbatim (`legacy_score`) and adds the ground-truth scorer around it.

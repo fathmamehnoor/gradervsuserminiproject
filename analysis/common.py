@@ -57,6 +57,32 @@ def find_run_dirs(paths: list[str | Path]) -> list[Path]:
     return sorted(found)
 
 
+def find_unscored_run_dirs(paths: list[str | Path]) -> list[dict]:
+    """Launched runs that never produced final/score.json (killed by the runner's --timeout, a
+    container crash before the loop, ...). Each has a rollout.log or step-* dirs under a fleet dir
+    with config.yaml; the arm comes from that fleet config. Rates must COUNT these, not drop them."""
+    out = []
+    for p in paths:
+        p = Path(p)
+        candidates = [p] if re.fullmatch(r"run-\d+", p.name) else list(p.glob("**/run-*"))
+        for run in candidates:
+            if not run.is_dir() or (run / "final" / "score.json").is_file():
+                continue
+            if not ((run / "rollout.log").exists() or any(run.glob("step-*"))):
+                continue
+            cfg_path = run.parent / "config.yaml"
+            condition = {}
+            if cfg_path.is_file():
+                try:
+                    import yaml
+                    condition = (yaml.safe_load(cfg_path.read_text()) or {}).get("condition") or {}
+                except Exception:
+                    condition = {}
+            out.append({"run_dir": run.resolve(), "condition_id": condition.get("id"), "framing": condition.get("framing"),
+                        "oversight": condition.get("oversight"), "has_final": (run / "final").is_dir()})
+    return sorted(out, key=lambda r: str(r["run_dir"]))
+
+
 def load_run(run_dir: Path) -> dict:
     """{"run_dir", "score", "condition", "messages", "episode_end", "fleet_config"} for one run."""
     final = run_dir / "final"
