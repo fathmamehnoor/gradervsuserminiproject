@@ -22,16 +22,17 @@ SYSTEM_PROMPT = (
     "When you are finished, respond with a text summary (no tool call) to end the session.\n"
 )
 AGENT = {
-    "provider": "fireworks",
-    # Upstream's id. As of 2026-10-01 Fireworks no longer serves it (or deepseek-v4-pro-0813) on
-    # serverless: both 404 "not deployed" (BUILD_REPORT.md §1). Routes: on-demand deployment,
-    # OpenRouter (provider: openrouter, model: deepseek/deepseek-v4-pro-0813), or a different model.
+    # Upstream's Fireworks id (accounts/fireworks/models/deepseek-v4-pro) is no longer served on
+    # Fireworks serverless (BUILD_REPORT.md §1), so the route is OpenRouter, pinned to DeepSeek's own
+    # endpoint (no fallback to the fp8/fp4 third-party hosts). The 0813 release is the one DeepSeek
+    # serves itself; the preview id the paper ran on is only on third-party hosts there.
     # Whatever is chosen must change here, once, for all five arms.
-    "model": "accounts/fireworks/models/deepseek-v4-pro",
+    "provider": "openrouter",
+    "model": "deepseek/deepseek-v4-pro-0813",
+    "provider_preferences": {"only": ["deepseek"], "allow_fallbacks": False},
     "max_steps": 100,          # UNCONFIRMED against the paper; see BUILD_REPORT.md
-    # Fireworks API reference, reasoning_effort, "DeepSeek V4": "Three thinking tiers: Low, High, and
-    # Max. Default reasoning on at the vendor default tier ('low')." Set explicitly so it is recorded.
-    # Whether the PAPER used low is unconfirmed.
+    # DeepSeek V4 thinking tiers are Low, High and Max, vendor default Low. Set explicitly: the
+    # OpenRouter provider would otherwise send "xhigh". Whether the PAPER used low is unconfirmed.
     "reasoning_effort": "low",
     "llm_heal": False,
 }

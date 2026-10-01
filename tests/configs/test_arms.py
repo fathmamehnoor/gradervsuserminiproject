@@ -48,7 +48,7 @@ def test_arms_parse_identically_outside_user_prompt_and_condition():
         d.pop("condition")
     base = dicts[ARM_FILES[0]]
     assert all(d == base for d in dicts.values())
-    assert base["task"]["target_errors"] == 258 and base["agent"]["provider"] == "fireworks"
+    assert base["task"]["target_errors"] == 258 and base["agent"]["provider"] == "openrouter"
 
 
 def test_prompt_building_blocks_are_used_verbatim():
@@ -95,23 +95,25 @@ def test_runner_resolves_every_arm_and_keeps_the_condition_block():
         assert cfg["agent"]["reasoning_effort"] == "low"
 
 
-def test_reasoning_effort_reaches_the_fireworks_request_body(monkeypatch):
-    """agent.reasoning_effort -> provider_kwargs -> FireworksProvider -> extra_body.reasoning_effort."""
-    monkeypatch.setenv("FIREWORKS_API_KEY", "test-key-not-real")
-    monkeypatch.delenv("ROLLOUT_GATEWAY", raising=False)
+def test_agent_settings_reach_the_openrouter_request_body(monkeypatch):
+    """agent.* -> provider_kwargs -> create_provider -> OpenRouterProvider request body, as agent.py builds it."""
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key-not-real")
     from agent_interp_envs.checkpoint import provider_kwargs
-    from agent_interp_envs.providers.fireworks_provider import FireworksProvider
+    from agent_interp_envs.providers import create_provider
+    from agent_interp_envs.providers.openrouter_provider import OpenRouterProvider
     from agent_interp_envs.tool_calling import EXECUTE_COMMAND_TOOL
 
     cfg = yaml.safe_load((CFG / "G_O.yaml").read_text())
     kwargs = provider_kwargs(cfg)
     assert kwargs["reasoning_effort"] == "low" and "condition" not in kwargs and "max_steps" not in kwargs
-    provider = FireworksProvider(model=kwargs["model"], messages=[], tools=[EXECUTE_COMMAND_TOOL],
-                                 reasoning_effort=kwargs["reasoning_effort"])
-    assert provider.kwargs["extra_body"] == {"reasoning_effort": "low"}
+    provider = create_provider(messages=[], tools=[EXECUTE_COMMAND_TOOL], **kwargs)
+    assert isinstance(provider, OpenRouterProvider)
+    assert provider.model == "deepseek/deepseek-v4-pro-0813"
+    body = provider.kwargs["extra_body"]
+    assert body["reasoning"] == {"effort": "low"}  # the provider's own default would be "xhigh"
+    assert body["provider"] == {"only": ["deepseek"], "allow_fallbacks": False}
+    assert body["usage"] == {"include": True}
     assert provider.kwargs["tools"] == [EXECUTE_COMMAND_TOOL]
-    # The provider default when unset is "low" (what the paper's run would have sent if unset).
-    assert FireworksProvider(model="m", messages=[], tools=[]).kwargs["extra_body"] == {"reasoning_effort": "low"}
 
 
 def test_smoke_configs_share_the_arm_task_block_and_carry_expectations():

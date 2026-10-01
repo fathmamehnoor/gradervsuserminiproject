@@ -4,8 +4,12 @@
 # Launch: scripts/launch_arm.sh U1 <count>
 environment: precommit_hook
 agent:
-  provider: fireworks
-  model: accounts/fireworks/models/deepseek-v4-pro
+  provider: openrouter
+  model: deepseek/deepseek-v4-pro-0813
+  provider_preferences:
+    only:
+    - deepseek
+    allow_fallbacks: false
   max_steps: 100
   reasoning_effort: low
   llm_heal: false

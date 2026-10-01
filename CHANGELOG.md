@@ -67,3 +67,15 @@ change something the agent could observe; everything else is harness/host-side o
   (about half the figures in the README's cost note). The preview id `deepseek/deepseek-v4-pro` (closer
   in date to the paper) is not served by DeepSeek itself on OpenRouter, only by third parties.
 
+## 2026-10-01 — model route: OpenRouter, DeepSeek's own endpoint
+
+- `build_arms.py` `AGENT` (all five arms): `provider: openrouter`, `model: deepseek/deepseek-v4-pro-0813`,
+  `provider_preferences: {only: [deepseek], allow_fallbacks: false}`. `reasoning_effort: low` and
+  `max_steps: 100` are unchanged and still explicit. Upstream's Fireworks id is no longer served on Fireworks
+  serverless. Not prompt-visible, but it changes the model: the paper ran the pre-0813 preview, so treat N0's
+  comparison with 69/100 as approximate.
+- `tests/configs/test_arms.py`: the provider assertion is now `openrouter`; the Fireworks request-body test is
+  replaced by one that builds the provider the way `agent.py` does and checks the effort, the pin and usage
+  accounting reach the OpenRouter request body.
+- README: setup table and known limitations updated.
+

@@ -150,9 +150,9 @@ differs. Shared settings (byte-identical across the five config files; `tests/co
 
 | key | value |
 |---|---|
-| `agent.provider` / `agent.model` | `fireworks` / `accounts/fireworks/models/deepseek-v4-pro` (upstream's id; **not servable on Fireworks serverless as of 2026-10-01**, see BUILD_REPORT.md §1 for the routes) |
+| `agent.provider` / `agent.model` | `openrouter` / `deepseek/deepseek-v4-pro-0813`, pinned with `provider_preferences: {only: [deepseek], allow_fallbacks: false}` to DeepSeek's own endpoint. Upstream's Fireworks id is no longer served on Fireworks serverless (BUILD_REPORT.md §1); the preview id the paper ran on is only on third-party (fp8/fp4) hosts on OpenRouter |
 | `agent.max_steps` | 100 (UNCONFIRMED against the paper) |
-| `agent.reasoning_effort` | `low`, set explicitly. Fireworks' API reference for DeepSeek V4: "Three thinking tiers: Low, High, and Max. Default reasoning on at the vendor default tier ('low')" (medium→high, xhigh→max). What the paper used is UNCONFIRMED |
+| `agent.reasoning_effort` | `low`, set explicitly (the OpenRouter provider's own default would be `xhigh`). Fireworks' API reference for DeepSeek V4: "Three thinking tiers: Low, High, and Max. Default reasoning on at the vendor default tier ('low')" (medium→high, xhigh→max). What the paper used is UNCONFIRMED |
 | `agent.llm_heal` | false |
 | `task.target_errors` | 258 |
 | `task.tools` | `[execute_command]` (one shell command per turn; a text-only reply ends the episode) |
@@ -296,7 +296,7 @@ each framing, and the difference-in-differences, each with a percentile-bootstra
   frames it as a pasted ticket, which is plausible but not identical to how a colleague would write.
 - The **G arms contain grader words** ("scored", "grader", "score", "evaluation"); `grader_term_hits` over
   reasoning will be non-zero there for that reason alone.
-- **The model id needs a decision**: Fireworks retired serverless DeepSeek v4 Pro (preview on 2026-08-27, the 0813 release on 2026-09-25); on-demand deployment, OpenRouter, or a different model are the options (BUILD_REPORT.md §1).
+- **The model is a substitute for the paper's**: Fireworks retired serverless DeepSeek v4 Pro (preview on 2026-08-27, the 0813 release on 2026-09-25), so the arms run `deepseek/deepseek-v4-pro-0813` on DeepSeek's own OpenRouter endpoint. The paper's run predates the 0813 release, so N0's comparison with 69/100 is approximate.
 - **max_steps and reasoning_effort are unconfirmed** against the paper (upstream ships neither config for the
   69/100 run: `default.yaml` has the prompt but Haiku 4.5 / 30 steps; `precommit_hook.yaml` has the model but
   `src_602` and another prompt). We use 100 steps and explicit `low` (the provider's default when unset).
