@@ -1,0 +1,26 @@
+# Secrets
+.env
+**/dot_env*
+
+# Results and analysis outputs
+results/
+analysis/out/
+
+# Python
+__pycache__/
+*.py[oc]
+.venv/
+*.egg-info
+build/
+dist/
+
+# Logs
+*.log
+
+# Generated precommit_hook variants (built from src_0 + src_258 by generate_variants.py at image build)
+environments/precommit_hook/src_*
+!environments/precommit_hook/src_0
+!environments/precommit_hook/src_258
+!environments/precommit_hook/src_602
+
+.DS_Store

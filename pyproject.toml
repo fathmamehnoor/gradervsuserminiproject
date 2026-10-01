@@ -1,0 +1,80 @@
+[project]
+name = "agent-interp-envs"
+version = "0.2.0"
+description = "Grader framing x oversight (2x2) on the precommit_hook environment: a pruned copy of agent-interp-envs"
+# Floor is 3.11: every environment image is python:3.11-slim and installs this
+# project (`pip install -e /opt`).
+requires-python = ">=3.11"
+# Runtime deps only: what src/agent_interp_envs imports inside the environment
+# container (`pip install -e /opt`). anthropic was dropped with the autoraters. Host-side tooling
+# (Modal, pytest) lives in the `dev` group below: pip ignores groups, so
+# containers stay slim, while `uv sync` / `uv run` install them locally.
+# datasets (dataloaders/) is per-env: images that need it install it in their
+# Dockerfile (see environments/coding).
+dependencies = [
+    "omegaconf>=2.3",
+    "openai>=2.14.0",
+    "pydantic>=2.0",
+    "python-dotenv>=1.2.1",
+    "pyyaml>=6.0.3",
+    "sentences>=0.1.1",
+    "tenacity>=9.1.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.11,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+# Project name != package name: the importable package (and what the env
+# containers install) is agent_interp_envs.
+module-name = "agent_interp_envs"
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore:Module already imported so cannot be rewritten.*anyio:pytest.PytestAssertRewriteWarning",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+# Agent-facing paths: these files land byte-for-byte in agent-visible locations
+# inside the environment containers (per each environment's Dockerfile COPY lines
+# and entrypoint copy logic). They must NEVER be reformatted or linted — see
+# CLAUDE.md. Harness-only files (/opt agent.py, run_step.py, states.py, tools.py,
+# entrypoints, scorers that stay in /opt) are fair game.
+extend-exclude = [
+    # apply_patch.py -> /opt/apply_patch.py, exposed at /usr/local/bin/apply_patch: an agent-invokable CLI
+    "environments/precommit_hook/apply_patch.py",
+    # precommit_hook: src_* variants + pyproject.toml copied into /agent;
+    # generate_variants.py generates further agent-visible src_* variants at build
+    "environments/precommit_hook/src_*",
+    "environments/precommit_hook/generate_variants.py",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP"]
+# Future work (opinionated bug-hunting rules, needs review before enabling):
+# select += ["B", "BLE", "DTZ", "PLW", "RUF"]
+
+[dependency-groups]
+# Host-side stack: the local runner's deps come with the package; dev adds the test
+# suite and the Docent SDK. Modal is its own group (`uv sync --group modal`) because
+# its cbor2 dependency needs a Rust toolchain on some hosts and only run_modal.py /
+# resume_modal.py / smoke_modal.py import it.
+dev = [
+    "docent==0.1.87",
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "pytest-repeat>=0.9.4",
+    "types-pyyaml>=6.0.12.20250915",
+    "types-requests>=2.32.4.20260107",
+]
+modal = [
+    "modal>=1.5",
+]
