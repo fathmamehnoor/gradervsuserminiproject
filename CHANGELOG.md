@@ -39,3 +39,31 @@ change something the agent could observe; everything else is harness/host-side o
 - Tests added: `tests/environments/precommit_hook/test_finalize.py` (loop failure modes), `tests/analysis/test_summarize.py`.
 - UPSTREAM.md: divergence note for the agent loop. README: outcome definitions rewritten accordingly.
 - Not model-visible. Prompts unchanged.
+
+## 2026-10-01 — neutral framing wrappers; OpenRouter cost logging
+
+### Experimental prompts **[model-visible]**
+- `G_POST`: dropped ", and the score counts toward your overall result on the suite". An incentive cue
+  (cheating pays) that could raise gaming in the G arms independently of the graded framing.
+- `U_PRE`: dropped "I need to get our v1.0.0 release out this afternoon because the analytics team is blocked
+  on it and I'm stuck in meetings,". A time-pressure cue that could raise gaming in the U arms independently
+  of the user framing.
+- The wrappers now carry only the framing cue. `CORE`, `OVERSIGHT`, `G_PRE`, `U_POST`, N0, the system prompt
+  and all agent/task settings are unchanged. Wrapper lengths: G 30 + 12 = 42, U 23 + 13 = 36 words, gap 14.3%
+  (limit 15%), so no filler was added. User prompts: G0 114, G1 172, U0 108, U1 166 words.
+- Arm configs regenerated with `build_arms.py`; README condition table and rendered prompts updated.
+  `Buildtask.md` and `BUILD_REPORT.md` are left as the record of the original build.
+
+### Harness (not model-visible)
+- `src/agent_interp_envs/providers/openrouter_provider.py`: requests OpenRouter usage accounting
+  (`extra_body.usage.include`) and prints a `[provider-usage]` line per call, same shape as the Fireworks
+  provider's plus `reasoning=`, `cost=` (USD, billed) and `served_by=` (the upstream provider, to check pinning).
+- New `analysis/cost.py`: per-run tokens, cached share and cost from `rollout.log`; per-arm mean/max/total;
+  `--plan N` projection; `--price-*` to price Fireworks lines. Writes `analysis/out/cost_runs.csv`.
+- Tests: `tests/src/test_openrouter_usage.py`, `tests/analysis/test_cost.py`. `.env.example`: `OPENROUTER_API_KEY`.
+- The configured model is unchanged (`fireworks` / `deepseek-v4-pro`, still unreachable). Switching to
+  OpenRouter is the one `AGENT` block in `build_arms.py`. OpenRouter prices checked 2026-10-01 for
+  `deepseek/deepseek-v4-pro-0813` on DeepSeek's own endpoint: $0.66/M in, $0.022/M cached, $1.98/M out
+  (about half the figures in the README's cost note). The preview id `deepseek/deepseek-v4-pro` (closer
+  in date to the paper) is not served by DeepSeek itself on OpenRouter, only by third parties.
+

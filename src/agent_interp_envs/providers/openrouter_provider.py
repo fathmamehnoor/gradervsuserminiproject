@@ -11,6 +11,7 @@ OpenRouter interleaved thinking supported models:
 """
 
 import json
+import time
 
 from dotenv import load_dotenv
 from openai import APIConnectionError, APITimeoutError, OpenAI, RateLimitError
@@ -84,7 +85,9 @@ class OpenRouterProvider(BaseProvider):
         )
         self.model = model
         self.messages = messages
-        extra_body = {"reasoning": {"effort": reasoning_effort or "xhigh"}}
+        # usage.include: OpenRouter then reports the billed cost and cached-token counts per
+        # call, which invoke() prints as a [provider-usage] line (see analysis/cost.py).
+        extra_body = {"reasoning": {"effort": reasoning_effort or "xhigh"}, "usage": {"include": True}}
         if provider_preferences:
             extra_body["provider"] = provider_preferences
         # Tool-less runs (e.g. a no-tools eval variant) must omit both keys:
@@ -119,6 +122,9 @@ class OpenRouterProvider(BaseProvider):
             **self.kwargs,
         )
 
+        if response.usage is not None:
+            self._log_usage(response)
+
         if not response.choices:
             error = getattr(response, "error", None) or (response.model_extra or {}).get("error")
             raise OpenRouterEmptyResponseError(f"OpenRouter returned no choices: {error}")
@@ -145,6 +151,23 @@ class OpenRouterProvider(BaseProvider):
             response=message.get("content"),
             tool_calls=tool_calls,
         )
+
+    def _log_usage(self, response) -> None:
+        """Per-call usage marker, same shape as the Fireworks provider's, plus OpenRouter's billed
+        cost (USD), reasoning tokens and the upstream provider that served the call (to confirm
+        provider pinning held)."""
+        u = response.usage
+        ptd = getattr(u, "prompt_tokens_details", None)
+        cached = getattr(ptd, "cached_tokens", None) or 0
+        cache_write = getattr(ptd, "cache_write_tokens", None) or 0
+        ctd = getattr(u, "completion_tokens_details", None)
+        reasoning = getattr(ctd, "reasoning_tokens", None) or 0
+        cost = getattr(u, "cost", None)
+        served_by = str(getattr(response, "provider", None)).replace(" ", "_")
+        print(f"[provider-usage] t={time.time():.0f} model={self.model} in={u.prompt_tokens} "
+              f"cache_read={cached} cache_write={cache_write} out={u.completion_tokens} "
+              f"rl_in_rem=None rl_out_rem=None reasoning={reasoning} cost={cost} served_by={served_by}",
+              flush=True)
 
     def add_tool_result(self, tool_result: ToolResult) -> None:
         """Add a tool result to message history."""
